@@ -163,15 +163,104 @@ MyFunc(
 
 # Rule("Moo")(
 
-rule3 = ((pickup := +Pickup()) <<
+
+def not_same_time(a,b):
+    return AND(b.te < a.ts, a.te < b.ts)
+
+AND(
+    +Block("block1"),
+    +Block("block2"), 
+    +Clear("clear1"), clear.object == block1,
+    +Holding("holding1"), holding1.object == block1,
+)
+>>
+ AND(-clear1, 
+    +On("on1"), on1.below == block1, on1.above == block2,
+    holding1.object == None
+ )
+
+
+AND(
+    +Block("block1"),
+    +Block("block2"), 
+    +Clear("clear1", block1),
+    +Holding("holding1", object=block1),
+)
+>>
+ AND(-clear1, 
+    +On("on1", below=block1, above=block2),
+    holding1.object == None
+ )
+
+Not(Block(id="block1", width=10))
+
+->
+
+Var(Block, "block1"), block1.id == "block1", block1.width == 10
+
+Not(Block, "block1"), block1.id == "block1", block1.width == 10
+
+
+NOT(AND(block1.id == "block1", block1.width == 10))
+
+OR(block1.id != "block1", block1.width != 10)
+
+
+# TWO issues w/ Pat's
+# 1. timestamps
+# 2. negation
+
+
+
+# No AND(), No (:=), tuple, 
+(
+    +Block(id="block1"),
+    +Block(id="block2"), 
+    +Clear(id="clear1", object=block1),
+    +Holding("holding1", object=block1),
+)
+>>
+(-clear1, 
+    +On("on1", below=block1, above=block2),
+    holding1.object == None
+)
+
+
+# No Quotes
+AND(
+    block1 := +Block(),
+    block2 := +Block(), 
+    clear1 := +Clear(block1),
+    holding1 := +Holding(object=block1),
+)
+>>
+ AND(-clear1, 
+    +On("on1", below=block1, above=block2),
+    holding1.object == None
+ )
+
+
+
+
+ # ############################
+ b1.width == Var(int, "b1-width")
+ b1 := Block(width=Var("b1-width"))
+
+ ############################
+
+
+
+pickup = ((p := +Pickup(block=block, )) <<
   AND(
-    block   := +Block(),
-    table   := +Table(),
-    hand    := +Hand(),
-    clear   := +Clear(block=block),
-    empty   := +Empty(hand=hand),
-    ontable := +OnTable(block=block, table=table),
-    holding := +Holding(hand=hand, object=block),
+    +Block("block1", height=10, width=20),
+
+    +Table("table1"),
+    block1.height >= table1.height,
+    hand1    := +Hand(),
+    clear1   := +Clear(block=block), 
+    empty1   := +Empty(hand=hand),
+    ontable1 := +OnTable(block=block, table=table),
+    holding1 := +Holding(hand=hand, object=block),
 
     # pickup.ts+1 == pickup.te, # Pickup takes 1s
 
@@ -180,19 +269,22 @@ rule3 = ((pickup := +Pickup()) <<
     # ontable.te == pickup.ts, # Ontable ends when pickup starts
 
     # # Only pickup while clear
-    # clear.ts <= pickup.ts,   # t0 <= t1
-    # pickup.ts <= clear.te,   # t1 <= t3
 
-    # # Pickup begins before end of holding
-    # pickup.ts < holding.te,  # t1 < t6
+    clear.ts <= pickup.ts,   # t0 <= t1
+    pickup.ts <= clear.te,   # t1 <= t3
 
-    # # Empty begins before pickup ends
-    # empty.ts < pickup.te,    # t4 < t2
+    # Pickup begins before end of holding
+    pickup.ts < holding.te,  # t1 < t6
 
-    # # OnTable begins before pickup ends
-    # ontable.ts < pickup.te,  # t5 < t2
+    # Empty begins before pickup ends
+    empty.ts < pickup.te,    # t4 < t2
+
+    # OnTable begins before pickup ends
+    ontable.ts < pickup.te,  # t5 < t2
   )
 )
+
+FactSet
 
 print(rule3)
 print(rule3)
